@@ -157,7 +157,6 @@ void drawPredicateBg(int24_t x, int24_t y, uint24_t width, uint24_t height, uint
 	gfx_FillRectangle(x + capWidth - 1, y - height / 2, width - 2 * capWidth + 2, height);
 }
 
-//scriptElem_t *drawElem(scriptElem_t *elem, int24_t x, int24_t y, uint24_t width, uint24_t height, blockColor_t parentColor) {
 bool drawElem(scriptElem_t *elem, int24_t x, int24_t y, blockColor_t parentColor, scriptElem_t **next, bool *csrOver, uint24_t *widthCache, uint24_t *heightCache) {
 	size_t length = getLength(elem);
 	bool freeWidth = false;
