@@ -28,23 +28,30 @@
 
 void test() {
 	int i;
-	#define layers 4
-	scriptElem_t elem[3 * layers + 2];
+	#define layers 3
+	scriptElem_t elem[2 + 3 * layers + 3];
 	uint24_t width;
 	size_t length;
 	uint24_t *widthCache, *heightCache;
 
+	elem[0].type = BLOCK_START;
+	elem[0].data = (void*)2;
+	elem[1].type = TITLE_TEXT;
+	elem[1].data = "say";
+
 	for(i = 0; i < layers; i++) {
-		elem[2 * i].type = PREDICATE_START;
-		elem[2 * i].data = (void*)1;
-		elem[2 * i + 1].type = TITLE_TEXT;
-		elem[2 * i + 1].data = "not";
-		elem[3 * layers - i].type = BLOCK_END;
-		elem[3 * layers - i].data = (void*)&elem[2 * i];
+		elem[2 + 2 * i].type = PREDICATE_START;
+		elem[2 + 2 * i].data = (void*)1;
+		elem[2 + 2 * i + 1].type = TITLE_TEXT;
+		elem[2 + 2 * i + 1].data = "not";
+		elem[2 + 3 * layers - i].type = BLOCK_END;
+		elem[2 + 3 * layers - i].data = (void*)&elem[2 + 2 * i];
 	}
-	elem[2 * layers].type = BOOLEAN_LITERAL;
-	elem[2 * layers].data = (void*)0;
-	elem[3 * layers + 1].type = END_SCRIPT;
+	elem[2 + 2 * layers].type = BOOLEAN_LITERAL;
+	elem[2 + 2 * layers].data = (void*)0;
+	elem[3 * layers + 3].type = BLOCK_END;
+	elem[3 * layers + 3].data = (void*)elem;
+	elem[3 + 3 * layers + 1].type = END_SCRIPT;
 
 	length = getLength(elem);
 	widthCache  = calloc(length, sizeof(uint24_t));
@@ -54,11 +61,9 @@ void test() {
 
 	dbg_sprintf(dbgout, "%i\n", width);
 
-	for(i = 50; i > (int24_t)(LCD_WIDTH - width) - 50; i -= 3) {
-		gfx_FillScreen(BG_COLOR);
-		drawElem(elem, i, LCD_HEIGHT / 2, 0, NULL, NULL, widthCache, heightCache);
-		gfx_SwapDraw();
-	}
+	gfx_FillScreen(BG_COLOR);
+	drawElem(elem, LCD_WIDTH / 2 - width / 2, LCD_HEIGHT / 2, 0, NULL, NULL, widthCache, heightCache);
+	gfx_SwapDraw();
 }
 
 void main(void) {

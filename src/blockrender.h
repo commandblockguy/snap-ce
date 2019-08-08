@@ -33,6 +33,6 @@ bool drawElem(scriptElem_t *elem, int24_t x, int24_t y, blockColor_t parentColor
 
 void drawScript(scriptElem_t *elem, int24_t x, int24_t y);
 
-//#define DBG_DRAW
+#define DBG_DRAW
 
 #endif

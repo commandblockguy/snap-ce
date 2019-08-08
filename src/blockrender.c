@@ -15,10 +15,13 @@
 #include "script.h"
 #include "blockrender.h"
 
-#define TEXT_HEIGHT 8
-#define LEFT_MARGIN 8
-#define ARG_SPACING 4
-#define PRED_CAP_WIDTH 6
+#define TEXT_HEIGHT		  8
+#define LEFT_MARGIN		  6
+#define ARG_SPACING		  4
+#define PRED_CAP_WIDTH	  6
+#define NOTCH_DEPTH		  3
+#define NOTCH_OFFSET	 10
+#define NOTCH_SIZE		(10 + 2 * NOTCH_DEPTH)
 
 #define COLOR_TRUE 0x45
 #define COLOR_FALSE 0xC9
@@ -33,6 +36,20 @@ uint8_t colors[] = {
 
 uint8_t getColor(blockColor_t col) {
 	return colors[col];
+}
+
+uint24_t getRecursiveHeight(scriptElem_t *elem, scriptElem_t **next, uint24_t *cache) {
+	uint24_t height = 8;
+
+	while((*next)->type != END_SCRIPT) {
+		uint24_t newHeight;
+		if((*next)->type == BLOCK_END && (*next)->data == (void*)elem) break;
+
+		newHeight = getHeight(*next, next, cache + (*next - elem));
+		if(newHeight > height) height = newHeight;
+	}
+	next++;
+	return height;
 }
 
 uint24_t getHeight(scriptElem_t *elem, scriptElem_t **next, uint24_t *cache) {
@@ -66,21 +83,12 @@ uint24_t getHeight(scriptElem_t *elem, scriptElem_t **next, uint24_t *cache) {
 			height = TEXT_HEIGHT;
 			break;
 
+		case BLOCK_START:
 		case PREDICATE_START: {
-			height = 8;
-
-			while((*next)->type != END_SCRIPT) {
-				uint24_t newHeight;
-				if((*next)->type == BLOCK_END && (*next)->data == (void*)elem) break;
-
-				newHeight = getHeight(*next, next, cache + (*next - elem));
-				if(newHeight > height) height = newHeight;
-			}
-			next++;
-
-			height += 6;
+			height = getRecursiveHeight(elem, next, cache) + 6;
 			break;
 		}
+
 		default:
 			height = 0;
 			break;
@@ -94,6 +102,17 @@ uint24_t getHeight(scriptElem_t *elem, scriptElem_t **next, uint24_t *cache) {
 
 	if(cache) *cache = height;
 	return height;
+}
+
+uint24_t getRecursiveWidth(scriptElem_t *elem, scriptElem_t **next, uint24_t *cache) {
+	uint24_t width = 0;
+	while((*next)->type != END_SCRIPT) {
+		if((*next)->type == BLOCK_END && (*next)->data == (void*)elem) break;
+
+		width += getWidth(*next, next, cache + (*next - elem)) + ARG_SPACING;
+	}
+	*next++;
+	return width - ARG_SPACING;
 }
 
 uint24_t getWidth(scriptElem_t *elem, scriptElem_t **next, uint24_t *cache) {
@@ -120,16 +139,16 @@ uint24_t getWidth(scriptElem_t *elem, scriptElem_t **next, uint24_t *cache) {
 			width = gfx_GetStringWidth(elem->data);
 			break;
 
-		case PREDICATE_START: {
-			width = PRED_CAP_WIDTH * 2 - ARG_SPACING;
-			while((*next)->type != END_SCRIPT) {
-				if((*next)->type == BLOCK_END && (*next)->data == (void*)elem) break;
-
-				width += getWidth(*next, next, cache + (*next - elem)) + ARG_SPACING;
-			}
-			*next++;
+		case BLOCK_START: {
+			width = LEFT_MARGIN * 3 / 2 + getRecursiveWidth(elem, next, cache);
 			break;
 		}
+
+		case PREDICATE_START: {
+			width = PRED_CAP_WIDTH * 2 + getRecursiveWidth(elem, next, cache);
+			break;
+		}
+
 		default:
 			width = 0;
 			break;
@@ -155,6 +174,33 @@ void drawPredicateBg(int24_t x, int24_t y, uint24_t width, uint24_t height, uint
 	}
 
 	gfx_FillRectangle(x + capWidth - 1, y - height / 2, width - 2 * capWidth + 2, height);
+}
+
+/* Caches should be non-NULL */
+bool drawRecursiveElem(scriptElem_t *elem, int24_t x, int24_t y, blockColor_t col, scriptElem_t **next, bool *csrOver, uint24_t *widthCache, uint24_t *heightCache) {
+	int24_t subX = x;
+	scriptElem_t *checkElem = elem + 1;
+
+	while(checkElem->type != END_SCRIPT) {
+		if(checkElem->type == BLOCK_END && checkElem->data == (void*)elem) break;
+		if(subX < (int24_t)LCD_WIDTH) {
+			uint24_t subWidth;
+			bool error;
+
+			subWidth = getWidth(checkElem, NULL, widthCache + (checkElem - elem));
+	
+			error = drawElem(checkElem, subX, y, col, &checkElem, NULL, widthCache + (checkElem - elem), heightCache + (checkElem - elem));
+	
+			if(!error) return false;
+
+			subX += subWidth + ARG_SPACING;
+		} else {
+			checkElem++;
+		}
+	}
+
+	if(next) *next = checkElem + 1;
+	return true;
 }
 
 bool drawElem(scriptElem_t *elem, int24_t x, int24_t y, blockColor_t parentColor, scriptElem_t **next, bool *csrOver, uint24_t *widthCache, uint24_t *heightCache) {
@@ -252,41 +298,49 @@ bool drawElem(scriptElem_t *elem, int24_t x, int24_t y, blockColor_t parentColor
 			break;
 		}
 
-		case PREDICATE_START: {
-			blockColor_t col;
-			int24_t subX = x + PRED_CAP_WIDTH;
-			scriptElem_t *checkElem = (scriptElem_t*)elem + 1;
-
-			col = (blockColor_t)elem->data;
+		case BLOCK_START: {
+			gfx_UninitedSprite(tmpSprite, NOTCH_SIZE, NOTCH_DEPTH);
+			int i;
+			blockColor_t col = (blockColor_t)elem->data;
 			if(col == parentColor) col |= COLOR_ALT;
+			gfx_SetColor(getColor(col));
 
+			tmpSprite->width  = NOTCH_SIZE;
+			tmpSprite->height = NOTCH_DEPTH;
+
+			gfx_GetSprite(tmpSprite, x + NOTCH_OFFSET, y);
+			gfx_HorizLine(x + 1, y, width - 2);
+			gfx_HorizLine(x + 1, y + height - 1, width - 2);
+			gfx_FillRectangle(x, y + 1, width, height - 2);
+			gfx_Sprite(tmpSprite, x + NOTCH_OFFSET, y);
+
+			for(i = 0; i < NOTCH_DEPTH; i++) {
+				gfx_HorizLine(x + NOTCH_OFFSET, y + i, i);
+				gfx_HorizLine(x + NOTCH_OFFSET + NOTCH_SIZE - i, y + i, i);
+				gfx_HorizLine(x + NOTCH_OFFSET + i, y + height + i, NOTCH_SIZE - 2 * i);
+			}
+
+			drawRecursiveElem(elem, x + LEFT_MARGIN, y + height / 2, col, next, csrOver, widthCache, heightCache);
+			
+			goto success;
+		}
+
+		case PREDICATE_START: {
+			blockColor_t col = (blockColor_t)elem->data;
+			if(col == parentColor) col |= COLOR_ALT;
 			gfx_SetColor(getColor(col));
 
 			drawPredicateBg(x, y, width, height, PRED_CAP_WIDTH);
 
-			while(checkElem->type != END_SCRIPT) {
-				if(checkElem->type == BLOCK_END && checkElem->data == (void*)elem) break;
-				if(subX < (int24_t)LCD_WIDTH) {
-					uint24_t subWidth;
-					bool error;
-					subWidth = getWidth(checkElem, NULL, widthCache + (checkElem - elem));
-	
-					error = drawElem(checkElem, subX, y, col, &checkElem, NULL, widthCache + (checkElem - elem), heightCache + (checkElem - elem));
-	
-					subX += subWidth + ARG_SPACING;
-				} else {
-					checkElem++;
-				}
-			}
-
-			if(next) *next = checkElem + 1;
+			drawRecursiveElem(elem, x + PRED_CAP_WIDTH, y, col, next, csrOver, widthCache, heightCache);
+			
 			goto success;
 		}
 	}
 
 	setNext:
 
-	if(next) *next = elem + 1;
+	if(next) *next = getNext(elem);
 
 	success:
 

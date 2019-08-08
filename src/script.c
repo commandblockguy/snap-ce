@@ -36,10 +36,15 @@ size_t getLength(scriptElem_t *elem) {
 			}
 		case END_SCRIPT:
 		case BLOCK_END:
-			return 0;
+			dbg_sprintf(dbgout, "Attempting to get length of END elem\n");
+			return 1;
 		default:
 			return 1;
 	}
+}
+
+scriptElem_t *getNext(scriptElem_t *elem) {
+	return elem + getLength(elem);
 }
 
 #ifndef NDEBUG
