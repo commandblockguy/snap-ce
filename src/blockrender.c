@@ -338,7 +338,7 @@ bool drawElem(scriptElem_t *elem, int24_t x, int24_t y, blockColor_t parentColor
 
 			drawPredicateBg(x, y, width, height, PRED_CAP_WIDTH);
 
-			drawRecursiveElem(elem, x + PRED_CAP_WIDTH, y, col, next, csrOver, widthCache, heightCache);
+			drawRecursiveElem(elem, x + PRED_CAP_WIDTH + 1, y, col, next, csrOver, widthCache, heightCache);
 			
 			goto success;
 		}
