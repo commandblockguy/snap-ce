@@ -28,7 +28,7 @@
 
 void test() {
 	int i;
-	#define layers 3
+	#define layers 5
 	scriptElem_t elem[2 + 3 * layers + 3];
 	uint24_t width;
 	size_t length;
