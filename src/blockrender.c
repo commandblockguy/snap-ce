@@ -18,7 +18,7 @@
 #define TEXT_HEIGHT		  8
 #define LEFT_MARGIN		  6
 #define ARG_SPACING		  4
-#define PRED_CAP_WIDTH	  6
+#define PRED_CAP_WIDTH	  5
 #define NOTCH_DEPTH		  3
 #define NOTCH_OFFSET	 10
 #define NOTCH_SIZE		(10 + 2 * NOTCH_DEPTH)
@@ -145,7 +145,7 @@ uint24_t getWidth(scriptElem_t *elem, scriptElem_t **next, uint24_t *cache) {
 		}
 
 		case PREDICATE_START: {
-			width = PRED_CAP_WIDTH * 2 + getRecursiveWidth(elem, next, cache);
+			width = (PRED_CAP_WIDTH + 1) * 2 + getRecursiveWidth(elem, next, cache);
 			break;
 		}
 
@@ -164,16 +164,22 @@ uint24_t getWidth(scriptElem_t *elem, scriptElem_t **next, uint24_t *cache) {
 	return width;
 }
 
-void drawPredicateBg(int24_t x, int24_t y, uint24_t width, uint24_t height, uint8_t capWidth) {
-	uint8_t i;
+void drawPredicateBg(int24_t x, int24_t y, uint24_t width, uint24_t height, uint24_t capWidth) {
+	uint24_t halfHeight = height / 2;
+	uint24_t doubleCapWidth = capWidth * 2;
+	int24_t xl = x;
+	int24_t xr = x + width;
+	uint24_t i;
 
-	for(i = 1; i < capWidth; i++) {
-		uint24_t h2 = height * i / capWidth;
-		gfx_VertLine(x + i - 1, y - h2 / 2, h2);
-		gfx_VertLine(x + width - i, y - h2 / 2, h2);
+	for(i = 0; i < capWidth; i++) {
+		uint24_t halfSliceHeight = ((i * 2 + 1) * halfHeight + capWidth) / doubleCapWidth;
+		uint24_t sliceHeight = halfSliceHeight * 2 + (height & 1);
+		int24_t sliceY = y - halfSliceHeight;
+		gfx_VertLine(xl++, sliceY, sliceHeight);
+		gfx_VertLine(--xr, sliceY, sliceHeight);
 	}
 
-	gfx_FillRectangle(x + capWidth - 1, y - height / 2, width - 2 * capWidth + 2, height);
+	gfx_FillRectangle(xl, y - halfHeight, xr - xl, height);
 }
 
 /* Caches should be non-NULL */
@@ -332,7 +338,7 @@ bool drawElem(scriptElem_t *elem, int24_t x, int24_t y, blockColor_t parentColor
 
 			drawPredicateBg(x, y, width, height, PRED_CAP_WIDTH);
 
-			drawRecursiveElem(elem, x + PRED_CAP_WIDTH, y, col, next, csrOver, widthCache, heightCache);
+			drawRecursiveElem(elem, x + PRED_CAP_WIDTH + 1, y, col, next, csrOver, widthCache, heightCache);
 			
 			goto success;
 		}
