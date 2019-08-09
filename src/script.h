@@ -49,10 +49,14 @@ scriptElem_t *getNext(scriptElem_t *elem);
 /* 1 for literals, 2 + sum(length of each sub-elem) */
 size_t getLength(scriptElem_t *elem);
 
+size_t getScriptLength(scriptElem_t *elem);
+
 #ifndef NDEBUG
 void printElemInfo(scriptElem_t *elem);
 #else
 #define printElemInfo(ignore) ((void*)0)
 #endif
+
+#define DBG_DRAW
 
 #endif

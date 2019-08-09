@@ -15,6 +15,8 @@
 #include "script.h"
 #include "blockrender.h"
 
+#include "gfx/gfx_group.h"
+
 #define TEXT_HEIGHT		  8
 #define LEFT_MARGIN		  6
 #define ARG_SPACING		  4
@@ -22,20 +24,15 @@
 #define NOTCH_DEPTH		  3
 #define NOTCH_OFFSET	 10
 #define NOTCH_SIZE		(10 + 2 * NOTCH_DEPTH)
+#define HAT_HEIGHT		  9
+#define HAT_MIN_WIDTH	 69
 
 #define COLOR_TRUE 0x45
 #define COLOR_FALSE 0xC9
 #define COLOR_BOOL_SELECT 0xDE
 
-uint8_t colors[] = {
-	0, 0x5B, 0x9A, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0,		/* Regular colors */
-	0, 0x9D, 0xBC, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0,		/* Alt color */
-	0, 0x32, 0x53, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0,		/* Darker color */
-	0, 0x74, 0x93, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0,		/* Darket alt color */
-};
-
 uint8_t getColor(blockColor_t col) {
-	return colors[col];
+	return colors->data[col];
 }
 
 uint24_t getRecursiveHeight(scriptElem_t *elem, scriptElem_t **next, uint24_t *cache) {
@@ -149,6 +146,11 @@ uint24_t getWidth(scriptElem_t *elem, scriptElem_t **next, uint24_t *cache) {
 			break;
 		}
 
+		case ON_GREEN_FLAG: {
+			width = LEFT_MARGIN * 3 / 2 + gfx_GetStringWidth("when  clicked") + flag->width;
+			break;
+		}
+
 		default:
 			width = 0;
 			break;
@@ -242,6 +244,37 @@ bool drawElem(scriptElem_t *elem, int24_t x, int24_t y, blockColor_t parentColor
 	if(x + width < 0 || y + height < 0) goto setNext;
 
 	switch(elem->type) {
+		case ON_GREEN_FLAG: {
+			blockColor_t col = 6;
+			uint24_t subX;
+			int i;
+			gfx_SetColor(getColor(col));
+
+			gfx_TransparentSprite(hat, x, y);
+			gfx_FillRectangle(x, y + HAT_HEIGHT, width, height - HAT_HEIGHT - 1);
+			gfx_HorizLine(x + 1, y + height - 1, width - 2);
+
+			for(i = 0; i < NOTCH_DEPTH; i++) {
+				gfx_HorizLine(x + NOTCH_OFFSET + i, y + height + i, NOTCH_SIZE - 2 * i);
+			}
+
+			gfx_SetColor(0xCD);
+			gfx_HorizLine(x + HAT_MIN_WIDTH - 2, y + HAT_HEIGHT - 1, width - HAT_MIN_WIDTH + 1);
+
+			gfx_SetTextFGColor(gfx_white);
+			gfx_PrintStringXY("when ", x + LEFT_MARGIN, y + HAT_HEIGHT + (height - HAT_HEIGHT - TEXT_HEIGHT) / 2);
+
+			subX = gfx_GetTextX();
+
+			gfx_TransparentSprite(flag, subX, y + HAT_HEIGHT - 1);
+
+			subX += flag->width;
+
+			gfx_PrintStringXY(" clicked", subX, gfx_GetTextY());
+
+			break;
+		}
+
 		case STRING_LITERAL: {
 			gfx_SetColor(gfx_black);
 			gfx_Rectangle(x, y - (TEXT_HEIGHT / 2) - 2, width, TEXT_HEIGHT + 4);
@@ -349,6 +382,55 @@ bool drawElem(scriptElem_t *elem, int24_t x, int24_t y, blockColor_t parentColor
 	if(next) *next = getNext(elem);
 
 	success:
+
+	if(freeWidth) free(widthCache);
+	if(freeHeight) free(heightCache);
+
+	return true;
+}
+
+bool drawScript(scriptElem_t *elem, int24_t x, int24_t y, bool *csrOver, uint24_t *widthCache, uint24_t *heightCache) {
+	uint24_t subY = y;
+	scriptElem_t *checkElem = elem;
+	size_t length = 0;
+	bool freeWidth = false;
+	bool freeHeight = false;
+
+	if(x > LCD_WIDTH || y > LCD_HEIGHT) return true;
+
+	if(!widthCache) {
+		if(!length) length = getScriptLength(elem);
+		widthCache = calloc(sizeof(widthCache[0]), length);
+		if(!widthCache) return false;
+		freeWidth = true;
+	}
+	if(!heightCache) {
+		if(!length) length = getScriptLength(elem);
+		heightCache = calloc(sizeof(heightCache[0]), length);
+		if(!heightCache) return false;
+		freeHeight = true;
+	}
+
+	while(checkElem->type != END_SCRIPT) {
+		if(subY < (int24_t)LCD_HEIGHT) {
+			uint24_t subHeight;
+			bool error;
+
+			subHeight = getHeight(checkElem, NULL, heightCache + (checkElem - elem));
+	
+			error = drawElem(checkElem, x, subY, 0, &checkElem, NULL, widthCache + (checkElem - elem), heightCache + (checkElem - elem));
+	
+			if(!error) {
+				if(freeWidth) free(widthCache);
+				if(freeHeight) free(heightCache);
+				return false;
+			}
+
+			subY += subHeight;
+		} else {
+			checkElem++;
+		}
+	}
 
 	if(freeWidth) free(widthCache);
 	if(freeHeight) free(heightCache);

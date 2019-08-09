@@ -31,8 +31,6 @@ typedef uint8_t blockColor_t;
 
 bool drawElem(scriptElem_t *elem, int24_t x, int24_t y, blockColor_t parentColor, scriptElem_t **next, bool *csrOver, uint24_t *widthCache, uint24_t *heightCache);
 
-void drawScript(scriptElem_t *elem, int24_t x, int24_t y);
-
-#define DBG_DRAW
+bool drawScript(scriptElem_t *elem, int24_t x, int24_t y, bool *csrOver, uint24_t *widthCache, uint24_t *heightCache);
 
 #endif

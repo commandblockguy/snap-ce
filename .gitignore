@@ -1,3 +1,6 @@
 # Specify filepatterns you want git to ignore.
 bin/
 obj/
+src/gfx/convpng.log
+src/gfx/*.c
+src/gfx/*.h

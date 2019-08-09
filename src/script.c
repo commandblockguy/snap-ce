@@ -43,6 +43,15 @@ size_t getLength(scriptElem_t *elem) {
 	}
 }
 
+size_t getScriptLength(scriptElem_t *elem) {
+	size_t length;
+	for(length = 0; elem[length].type != END_SCRIPT; length++);
+	#ifdef DBG_DRAW
+	dbg_sprintf(dbgout, "script length: %u\n", length);
+	#endif
+	return length;
+}
+
 scriptElem_t *getNext(scriptElem_t *elem) {
 	return elem + getLength(elem);
 }
