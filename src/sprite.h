@@ -13,6 +13,7 @@
 
 #include <graphx.h>
 
+/* Various sprite fields */
 typedef struct Sprite {
 	int24_t x;
 	int24_t y;

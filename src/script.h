@@ -45,12 +45,12 @@ typedef struct ScriptElem {
 	char *data;
 } scriptElem_t;
 
+/* Returns the next element after the end of elem */
 scriptElem_t *getNext(scriptElem_t *elem);
 
-/* Returns the number of elems in this elem */
-/* 1 for literals, 2 + sum(length of each sub-elem) */
+/* Returns the total number of elems in this elem/script */
+/* i.e. 1 for literals, 2 + sum(length of each sub-elem) for blocks */
 size_t getLength(scriptElem_t *elem);
-
 size_t getScriptLength(scriptElem_t *elem);
 
 enum Categories {
@@ -59,14 +59,17 @@ enum Categories {
 	LOOKS,
 	SOUND,
 	PEN,
-	CONTROL,
 	LISTS,
+	CONTROL,
 	SENSING,
 	OPERATORS,
 	VARIABLES,
 	OTHER
 };
 
+uint8_t getCategory(void *data);
+
+/* IDs for primative functions defined in C */
 /* Adding 0x800000 here gives an error 111 */
 unsigned enum Primitives {
 	PRIM_SAY,
@@ -74,16 +77,17 @@ unsigned enum Primitives {
 	NUM_PRIMATIVES
 };
 
-uint8_t getCategory(void *data);
-
+/* Pointers to definitions of primative blocks */
 extern scriptElem_t *primitiveBlocks[NUM_PRIMATIVES];
 
+/* Prints information about an element in an easy-to-read format */
 #ifndef NDEBUG
 void printElemInfo(scriptElem_t *elem);
 #else
 #define printElemInfo(ignore) ((void*)0)
 #endif
 
+/* Comment this out to disable debugging output while drawing */
 #define DBG_DRAW
 
 #endif

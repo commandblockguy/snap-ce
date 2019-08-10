@@ -16,6 +16,7 @@ size_t getLength(scriptElem_t *elem) {
 	scriptElem_t *checkElem;
 
 	switch(elem->type) {
+		/* Elements with subelements */
 		case ON_CONDITION_START:
 		case CUSTOM_BLOCK_START:
 		case BLOCK_START:
@@ -23,17 +24,16 @@ size_t getLength(scriptElem_t *elem) {
 		case PREDICATE_START:
 		case ARGLIST_START:
 			for(checkElem = elem;; checkElem++) {
-				if(checkElem->type == END_SCRIPT) {
-					return checkElem - elem;
-				}
 				if(checkElem->type == BLOCK_END && (scriptElem_t*)checkElem->data == elem) {
 					return checkElem - elem;
 				}
 			}
+		/* These should never be reached, if other functions are working properly */
 		case END_SCRIPT:
 		case BLOCK_END:
 			dbg_sprintf(dbgerr, "Attempting to get length of END elem\n");
 			return 1;
+		/* For literals and such */
 		default:
 			return 1;
 	}
@@ -41,16 +41,22 @@ size_t getLength(scriptElem_t *elem) {
 
 size_t getScriptLength(scriptElem_t *elem) {
 	size_t length;
+
+	/* Iterate until we find an END_SCRIPT elem */
 	for(length = 0; elem[length].type != END_SCRIPT; length++);
+
 	#ifdef DBG_DRAW
 	dbg_sprintf(dbgout, "script length: %u\n", length);
 	#endif
+
 	return length;
 }
 
 scriptElem_t *getNext(scriptElem_t *elem) {
 	return elem + getLength(elem);
 }
+
+/* Some temporary primatives for testing purposes */
 
 const scriptElem_t prim_Say[] = {
 	{CUSTOM_BLOCK_START, (void*)((1 << 8) + LOOKS)}
@@ -60,11 +66,14 @@ const scriptElem_t prim_Not[] = {
 	{CUSTOM_BLOCK_START, (void*)((1 << 8) + OPERATORS)}
 };
 
+/* Array of pointers to primative function definitions */
+/* If we just used raw pointers functions would shift around between versions */
 const scriptElem_t *primitiveBlocks[NUM_PRIMATIVES] = {
 	prim_Say,
 	prim_Not
 };
 
+/* Get the category of a block */
 uint8_t getCategory(void *data) {
 	if((uint24_t)data >> 16 == 0x80) {
 		/* Primitive function */
@@ -105,6 +114,7 @@ char *elemNames[] = {
 	"TITLE_TEXT",				/* String - ignored when evaluating */
 };
 
+/* Note to self: this is actual code, and not the result of a cat walking across the number pad */
 void printElemInfo(scriptElem_t *elem) {
 	dbg_sprintf(dbgout, "[%u (%s) @ %p: 0x%p", elem->type, elemNames[elem->type], elem, elem->data);
 	if(elem->type == TITLE_TEXT || elem->type == STRING_LITERAL)
