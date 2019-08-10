@@ -21,10 +21,6 @@ size_t getLength(scriptElem_t *elem) {
 		case BLOCK_START:
 		case REPORTER_START:
 		case PREDICATE_START:
-		case BLOCK_RING_START:
-		case REPORTER_RING_START:
-		case PREDICATE_RING_START:
-		case C_BLOCK_START:
 		case ARGLIST_START:
 			for(checkElem = elem;; checkElem++) {
 				if(checkElem->type == END_SCRIPT) {
@@ -36,7 +32,7 @@ size_t getLength(scriptElem_t *elem) {
 			}
 		case END_SCRIPT:
 		case BLOCK_END:
-			dbg_sprintf(dbgout, "Attempting to get length of END elem\n");
+			dbg_sprintf(dbgerr, "Attempting to get length of END elem\n");
 			return 1;
 		default:
 			return 1;
@@ -56,6 +52,29 @@ scriptElem_t *getNext(scriptElem_t *elem) {
 	return elem + getLength(elem);
 }
 
+const scriptElem_t prim_Say[] = {
+	{CUSTOM_BLOCK_START, (void*)((1 << 8) + LOOKS)}
+};
+
+const scriptElem_t prim_Not[] = {
+	{CUSTOM_BLOCK_START, (void*)((1 << 8) + OPERATORS)}
+};
+
+const scriptElem_t *primitiveBlocks[NUM_PRIMATIVES] = {
+	prim_Say,
+	prim_Not
+};
+
+uint8_t getCategory(void *data) {
+	if((uint24_t)data >> 16 == 0x80) {
+		/* Primitive function */
+		return (uint8_t)primitiveBlocks[(uint24_t)data & 0x00FFFF]->data;
+	} else {
+		/* User-defined function */
+		return (uint8_t)((scriptElem_t*)data)->data;
+	}
+}
+
 #ifndef NDEBUG
 
 char *elemNames[] = {
@@ -68,13 +87,15 @@ char *elemNames[] = {
 	"ON_MESSAGE",				/* Pointer to message */
 	"ON_CLONE",					/* No data */
 	"CUSTOM_BLOCK_START",		/* Lower byte is a color, upper bytes are 0 for custom blocks, 1 for builtins */
-	"BLOCK_START",				/* Block type / definition */
+	"BLOCK_START",				/* Pointer to block definition, or 0x800000 + primitive block ID */
 	"REPORTER_START",			/* Reporter type / definition */
 	"PREDICATE_START",			/* Predicate type / definition */
-	"BLOCK_RING_START",			/* No data */
-	"REPORTER_RING_START",		/* Bool: hidden (part of a unevaluated statement) */
-	"PREDICATE_RING_START",		/* Bool: hidden (part of a unevaluated statement) */
-	"C_BLOCK_START",			/* No data */
+	"BLOCK_RING",				/* Pointer to script inside ring */
+	"C_BLOCK",					/* Pointer to script inside C block */
+	"REPORTER_RING",			/* Pointer to script inside ring */
+	"HIDDEN_REPORTER_RING",		/* Pointer to script inside ring */
+	"PREDICATE_RING",			/* Pointer to script inside ring */
+	"HIDDEN_PREDICATE_RING",	/* Pointer to script inside ring */
 	"ARGLIST_START",			/* No data */
 	"BOOLEAN_LITERAL",			/* 0 = false, 1 = true, 2 = "empty" false */
 	"STRING_LITERAL",			/* Pointer to string */

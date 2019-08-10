@@ -21,13 +21,15 @@ enum ElemTypes {
 	ON_MESSAGE,				/* Pointer to message */
 	ON_CLONE,				/* No data */
 	CUSTOM_BLOCK_START,		/* Lower byte is a color, upper bytes are 0 for custom blocks, 1 for builtins */
-	BLOCK_START,			/* Block type / definition */
+	BLOCK_START,			/* Pointer to block definition, or 0x800000 + primitive block ID */
 	REPORTER_START,			/* Reporter type / definition */
 	PREDICATE_START,		/* Predicate type / definition */
-	BLOCK_RING_START,		/* No data */
-	REPORTER_RING_START,	/* Bool: hidden (part of a unevaluated statement) */
-	PREDICATE_RING_START,	/* Bool: hidden (part of a unevaluated statement) */
-	C_BLOCK_START,			/* No data */
+	BLOCK_RING,				/* Pointer to script inside ring */
+	C_BLOCK,				/* Pointer to script inside C block */
+	REPORTER_RING,			/* Pointer to script inside ring */
+	HIDDEN_REPORTER_RING,	/* Pointer to script inside ring */
+	PREDICATE_RING,			/* Pointer to script inside ring */
+	HIDDEN_PREDICATE_RING,	/* Pointer to script inside ring */
 	ARGLIST_START,			/* No data */
 	BOOLEAN_LITERAL,		/* 0 = false, 1 = true, 2 = "empty" false */
 	STRING_LITERAL,			/* Pointer to string */
@@ -50,6 +52,31 @@ scriptElem_t *getNext(scriptElem_t *elem);
 size_t getLength(scriptElem_t *elem);
 
 size_t getScriptLength(scriptElem_t *elem);
+
+enum Categories {
+	NO_CATEGORY,
+	MOTION,
+	LOOKS,
+	SOUND,
+	PEN,
+	CONTROL,
+	LISTS,
+	SENSING,
+	OPERATORS,
+	VARIABLES,
+	OTHER
+};
+
+/* Adding 0x800000 here gives an error 111 */
+unsigned enum Primitives {
+	PRIM_SAY,
+	PRIM_NOT,
+	NUM_PRIMATIVES
+};
+
+uint8_t getCategory(void *data);
+
+extern scriptElem_t *primitiveBlocks[NUM_PRIMATIVES];
 
 #ifndef NDEBUG
 void printElemInfo(scriptElem_t *elem);

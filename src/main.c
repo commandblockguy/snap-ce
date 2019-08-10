@@ -35,13 +35,13 @@ void test() {
 
 	elem[0].type = ON_GREEN_FLAG;
 	elem[1].type = BLOCK_START;
-	elem[1].data = (void*)2;
+	elem[1].data = (void*)(0x800000+PRIM_SAY);
 	elem[2].type = TITLE_TEXT;
 	elem[2].data = "say";
 
 	for(i = 0; i < layers; i++) {
 		elem[3 + 2 * i].type = PREDICATE_START;
-		elem[3 + 2 * i].data = (void*)1;
+		elem[3 + 2 * i].data = (void*)(0x800000+PRIM_NOT);
 		elem[3 + 2 * i + 1].type = TITLE_TEXT;
 		elem[3 + 2 * i + 1].data = "not";
 		elem[3 + 3 * layers - i].type = BLOCK_END;

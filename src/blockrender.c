@@ -340,7 +340,9 @@ bool drawElem(scriptElem_t *elem, int24_t x, int24_t y, blockColor_t parentColor
 		case BLOCK_START: {
 			gfx_UninitedSprite(tmpSprite, NOTCH_SIZE, NOTCH_DEPTH);
 			int i;
-			blockColor_t col = (blockColor_t)elem->data;
+
+			blockColor_t col = getCategory(elem->data);
+			dbg_sprintf(dbgout, "Color: %u\n", col);
 			if(col == parentColor) col |= COLOR_ALT;
 			gfx_SetColor(getColor(col));
 
@@ -365,7 +367,7 @@ bool drawElem(scriptElem_t *elem, int24_t x, int24_t y, blockColor_t parentColor
 		}
 
 		case PREDICATE_START: {
-			blockColor_t col = (blockColor_t)elem->data;
+			blockColor_t col = getCategory(elem->data);
 			if(col == parentColor) col |= COLOR_ALT;
 			gfx_SetColor(getColor(col));
 
