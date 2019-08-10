@@ -29,14 +29,15 @@
 void test() {
 	int i;
 	#define layers 5
-	scriptElem_t elem[2 + 3 * layers + 4];
+	scriptElem_t elem[3 + 3 * layers + 15];
 	size_t length;
+	uint24_t width, height;
 	uint24_t *widthCache, *heightCache;
 
 	elem[0].type = ON_GREEN_FLAG;
 
 	elem[1].type = BLOCK_START;
-	elem[1].data = (void*)(0x800000+PRIM_SAY);
+	elem[1].data = PRIM(SAY);
 
 	elem[2].type = TITLE_TEXT;
 	elem[2].data = "say";
@@ -44,7 +45,7 @@ void test() {
 	for(i = 0; i < layers; i++) {
 		/* Add the predicate */
 		elem[3 + 2 * i].type = PREDICATE_START;
-		elem[3 + 2 * i].data = (void*)(0x800000+PRIM_NOT);
+		elem[3 + 2 * i].data = PRIM(NOT);
 		/* Add text for the predicate */
 		elem[3 + 2 * i + 1].type = TITLE_TEXT;
 		elem[3 + 2 * i + 1].data = "not";
@@ -59,7 +60,42 @@ void test() {
 	elem[3 + 3 * layers + 1].type = BLOCK_END;
 	elem[3 + 3 * layers + 1].data = (void*)&elem[1];
 
-	elem[3 + 3 * layers + 2].type = END_SCRIPT;
+	elem[3 + 3 * layers + 2].type = BLOCK_START;
+	elem[3 + 3 * layers + 2].data = PRIM(SAY);
+
+	elem[3 + 3 * layers + 3].type = BLOCK_RING_START;
+
+	elem[3 + 3 * layers + 4].type = BLOCK_START;
+	elem[3 + 3 * layers + 4].data = PRIM(SAY);
+
+	elem[3 + 3 * layers + 5].type = TITLE_TEXT;
+	elem[3 + 3 * layers + 5].data = "say";
+
+	elem[3 + 3 * layers + 6].type = STRING_LITERAL;
+	elem[3 + 3 * layers + 6].data = "Hello";
+
+	elem[3 + 3 * layers + 7].type = BLOCK_END;
+	elem[3 + 3 * layers + 7].data = (void*)&elem[3 + 3 * layers + 4];
+
+	elem[3 + 3 * layers + 8].type = BLOCK_START;
+	elem[3 + 3 * layers + 8].data = PRIM(SAY);
+
+	elem[3 + 3 * layers + 9].type = TITLE_TEXT;
+	elem[3 + 3 * layers + 9].data = "say";
+
+	elem[3 + 3 * layers + 10].type = STRING_LITERAL;
+	elem[3 + 3 * layers + 10].data = "World!";
+
+	elem[3 + 3 * layers + 11].type = BLOCK_END;
+	elem[3 + 3 * layers + 11].data = (void*)&elem[3 + 3 * layers + 8];
+
+	elem[3 + 3 * layers + 12].type = BLOCK_END;
+	elem[3 + 3 * layers + 12].data = (void*)&elem[3 + 3 * layers + 3];
+
+	elem[3 + 3 * layers + 13].type = BLOCK_END;
+	elem[3 + 3 * layers + 13].data = (void*)&elem[3 + 3 * layers + 2];
+
+	elem[3 + 3 * layers + 14].type = END_SCRIPT;
 
 	/* Allocate memory to be used as a cache so we don't have to recalculate everything */
 	length = getScriptLength(elem);

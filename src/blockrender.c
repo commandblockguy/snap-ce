@@ -32,6 +32,11 @@
 #define COLOR_FALSE 0xC9 // Color used to represent false in Boolean literals
 #define COLOR_BOOL_SELECT 0xDE // Color of the circle in the Boolean literal's toggle
 
+uint24_t getMaxHeight(scriptElem_t *elem, scriptElem_t **next, uint24_t *cache);
+uint24_t getTotalHeight(scriptElem_t *elem, scriptElem_t **next, uint24_t *cache);
+uint24_t getMaxWidth(scriptElem_t *elem, scriptElem_t **next, uint24_t *cache);
+uint24_t getTotalHeight(scriptElem_t *elem, scriptElem_t **next, uint24_t *cache);
+
 /* Get a graphx color from a blockColor */
 uint8_t getColor(blockColor_t col) {
 	/* colors is a 16x4 sprite */
@@ -39,7 +44,7 @@ uint8_t getColor(blockColor_t col) {
 }
 
 /* Finds the tallest elem in a block */
-uint24_t getRecursiveHeight(scriptElem_t *elem, scriptElem_t **next, uint24_t *cache) {
+uint24_t getMaxHeight(scriptElem_t *elem, scriptElem_t **next, uint24_t *cache) {
 	uint24_t height = 8; /* If there are no elements taller than 8px, use 8px */
 
 	/* Ensure that we don't exit the script somehow */
@@ -49,7 +54,7 @@ uint24_t getRecursiveHeight(scriptElem_t *elem, scriptElem_t **next, uint24_t *c
 		if((*next)->type == BLOCK_END && (*next)->data == (void*)elem) break;
 
 		/* Get the height of the next element */
-		newHeight = getHeight(*next, next, cache + (*next - elem));
+		newHeight = getHeight(*next, next, cache ? cache + (*next - elem) : NULL);
 
 		/* Update the maximum height */
 		if(newHeight > height) height = newHeight;
@@ -98,7 +103,14 @@ uint24_t getHeight(scriptElem_t *elem, scriptElem_t **next, uint24_t *cache) {
 		case BLOCK_START:
 		case PREDICATE_START: {
 			/* Find the tallest subelement and add a border */
-			height = getRecursiveHeight(elem, next, cache) + 6;
+			height = getMaxHeight(elem, next, cache) + 6;
+			break;
+		}
+
+		case BLOCK_RING_START: {
+			/* Get the total height of the inner blocks */
+			height = getTotalHeight(elem, next, cache) + 6;
+			if(height < 14) height = 14;
 			break;
 		}
 
@@ -118,8 +130,27 @@ uint24_t getHeight(scriptElem_t *elem, scriptElem_t **next, uint24_t *cache) {
 	return height;
 }
 
+/* Finds the total height of all elements with some space between */
+uint24_t getTotalHeight(scriptElem_t *elem, scriptElem_t **next, uint24_t *cache) {
+	uint24_t height = 0;
+
+	/* Ensure that we don't exit the script somehow */
+	while((*next)->type != END_SCRIPT) {
+		/* Break if we are at the end of the block */
+		if((*next)->type == BLOCK_END && (*next)->data == (void*)elem) break;
+
+		/* Add the width of the subelement to the total */
+		height += getHeight(*next, next, cache ? cache + (*next - elem) : NULL);
+	}
+
+	/* Point at the element after BLOCK_END */
+	*next++;
+
+	return height;
+}
+
 /* Finds the total width of all elements with some space between */
-uint24_t getRecursiveWidth(scriptElem_t *elem, scriptElem_t **next, uint24_t *cache) {
+uint24_t getTotalWidth(scriptElem_t *elem, scriptElem_t **next, uint24_t *cache) {
 	uint24_t width = 0;
 
 	/* Ensure that we don't exit the script somehow */
@@ -128,7 +159,7 @@ uint24_t getRecursiveWidth(scriptElem_t *elem, scriptElem_t **next, uint24_t *ca
 		if((*next)->type == BLOCK_END && (*next)->data == (void*)elem) break;
 
 		/* Add the width of the subelement and the argument spacing to the total */
-		width += getWidth(*next, next, cache + (*next - elem)) + ARG_SPACING;
+		width += getWidth(*next, next, cache ? cache + (*next - elem) : NULL) + ARG_SPACING;
 	}
 
 	/* Point at the element after BLOCK_END */
@@ -170,18 +201,23 @@ uint24_t getWidth(scriptElem_t *elem, scriptElem_t **next, uint24_t *cache) {
 
 		case BLOCK_START: {
 			/* Get the total width of all subelements, plus a margin */
-			width = LEFT_MARGIN + RIGHT_MARGIN + getRecursiveWidth(elem, next, cache);
+			width = LEFT_MARGIN + RIGHT_MARGIN + getTotalWidth(elem, next, cache);
 			break;
 		}
 
 		case PREDICATE_START: {
 			/* Get the total width of all subelements, plus a margin */
-			width = (PRED_CAP_WIDTH + 1) * 2 + getRecursiveWidth(elem, next, cache);
+			width = (PRED_CAP_WIDTH + 1) * 2 + getTotalWidth(elem, next, cache);
 			break;
 		}
 
 		case ON_GREEN_FLAG: {
 			width = LEFT_MARGIN + RIGHT_MARGIN + gfx_GetStringWidth("when  clicked") + flag->width;
+			break;
+		}
+
+		case BLOCK_RING_START: {
+			width = getMaxWidth(elem, next, cache) + 6;
 			break;
 		}
 
@@ -198,6 +234,29 @@ uint24_t getWidth(scriptElem_t *elem, scriptElem_t **next, uint24_t *cache) {
 
 	/* Update the cache */
 	if(cache) *cache = width;
+	return width;
+}
+
+/* Finds the widest elem in a block */
+uint24_t getMaxWidth(scriptElem_t *elem, scriptElem_t **next, uint24_t *cache) {
+	uint24_t width = 0;
+
+	/* Ensure that we don't exit the script somehow */
+	while((*next)->type != END_SCRIPT) {
+		uint24_t newWidth;
+		/* Break if we are at the end of the block */
+		if((*next)->type == BLOCK_END && (*next)->data == (void*)elem) break;
+
+		/* Get the width of the next element */
+		newWidth = getWidth(*next, next, cache ? cache + (*next - elem) : NULL);
+
+		/* Update the maximum width */
+		if(newWidth > width) width = newWidth;
+	}
+
+	/* Point at the element after BLOCK_END */
+	*next++;
+
 	return width;
 }
 
@@ -224,10 +283,22 @@ void drawPredicateBg(int24_t x, int24_t y, uint24_t width, uint24_t height, uint
 	gfx_FillRectangle(xl, y - halfHeight, xr - xl, height);
 }
 
+void drawReporterBg(int24_t x, int24_t y, uint24_t width, uint24_t height) {
+	uint24_t i;
+
+	for(i = 0; i < 3; i++) {
+		gfx_HorizLine(x + 3 - i, y + i, width - 6 + 2 * i);
+		gfx_HorizLine(x + 3 - i, y + height - i - 1, width - 6 + 2 * i);
+	}
+
+	gfx_FillRectangle(x, y + 3, width, height - 6);
+}
+
 /* Draw all of the subelements of an element */
 /* Caches should be non-NULL */
 bool drawRecursiveElem(scriptElem_t *elem, int24_t x, int24_t y, blockColor_t col, scriptElem_t **next, bool *csrOver, uint24_t *widthCache, uint24_t *heightCache) {
 	int24_t subX = x;
+	int24_t subY = y;
 	/* Get the first subelement */
 	scriptElem_t *checkElem = elem + 1;
 
@@ -236,20 +307,31 @@ bool drawRecursiveElem(scriptElem_t *elem, int24_t x, int24_t y, blockColor_t co
 		/* Break if we are at the end of the block */
 		if(checkElem->type == BLOCK_END && checkElem->data == (void*)elem) break;
 		/* Only render stuff that's on-screen */
-		if(subX < (int24_t)LCD_WIDTH) {
-			uint24_t subWidth;
+		if(subX < (int24_t)LCD_WIDTH && subY < (int24_t)LCD_HEIGHT) {
+			uint24_t subWidth, subHeight;
+			uint8_t type = checkElem->type;
 			bool error;
 
-			/* Get the (usually cached) width of the subelement */
-			subWidth = getWidth(checkElem, NULL, widthCache + (checkElem - elem));
+			/* Get the (usually cached) width and height of the subelement */
+			subWidth = getWidth(checkElem, NULL, widthCache ? widthCache + (checkElem - elem) : NULL);
+			subHeight = getHeight(checkElem, NULL, heightCache ? heightCache + (checkElem - elem) : NULL);
 	
 			/* Actually draw the subelement */
-			error = drawElem(checkElem, subX, y, col, &checkElem, NULL, widthCache + (checkElem - elem), heightCache + (checkElem - elem));
-	
+			error = drawElem(
+				checkElem, subX, subY, col, &checkElem, NULL,
+				widthCache ? widthCache + (checkElem - elem) : NULL,
+				heightCache ? heightCache + (checkElem - elem) : NULL
+			);
+
 			if(!error) return false;
 
-			/* Add the width of the element, plus the argument spacing, to our x position */
-			subX += subWidth + ARG_SPACING;
+			if(type == BLOCK_START) {
+				/* Add the height of the element to our y position */
+				subY += subHeight;
+			} else {
+				/* Add the width of the element, plus the argument spacing, to our x position */
+				subX += subWidth + ARG_SPACING;
+			}
 		} else if(next) {
 			/* We are not rendering stuff but we still want to find the next element */
 			checkElem++;
@@ -470,6 +552,18 @@ bool drawElem(scriptElem_t *elem, int24_t x, int24_t y, blockColor_t parentColor
 			/* Draw the predicate's subelements */
 			drawRecursiveElem(elem, x + PRED_CAP_WIDTH + 1, y, col, next, csrOver, widthCache, heightCache);
 			
+			goto success;
+		}
+
+		case BLOCK_RING_START: {
+			blockColor_t col = OTHER;
+			if(col == parentColor) col |= COLOR_ALT;
+			gfx_SetColor(getColor(col));
+
+			drawReporterBg(x, y - height / 2, width, height);
+
+			drawRecursiveElem(elem, x + 3, y - height / 2 + 3, col, next, csrOver, widthCache, heightCache);
+
 			goto success;
 		}
 	}

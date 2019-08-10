@@ -15,12 +15,12 @@
 
 /* Get the height of an element */
 /* next will be set to the pointer to the next element, if non-null */
-/* Cache is a height cache, which should be at least the length of the element */
+/* Cache is a height cache, which should be, if non-NULL, at least the length of the element */
 uint24_t getHeight(scriptElem_t *elem, scriptElem_t **next, uint24_t *cache);
 
-/* Get the height of an element */
+/* Get the width of an element */
 /* next will be set to the pointer to the next element, if non-null */
-/* Cache is a width cache, which should be at least the length of the element */
+/* Cache is a width cache, which should be, if non-NULL, at least the length of the element */
 /* For blocks with C blocks, this includes the width of the elements inside the C block */
 uint24_t getWidth(scriptElem_t *elem, scriptElem_t **next, uint24_t *cache);
 

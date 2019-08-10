@@ -22,6 +22,12 @@ size_t getLength(scriptElem_t *elem) {
 		case BLOCK_START:
 		case REPORTER_START:
 		case PREDICATE_START:
+		case BLOCK_RING_START:
+		case C_BLOCK_START:
+		case REPORTER_RING_START:
+		case HIDDEN_REPORTER_RING_START:
+		case PREDICATE_RING_START:
+		case HIDDEN_PREDICATE_RING_START:
 		case ARGLIST_START:
 			for(checkElem = elem;; checkElem++) {
 				if(checkElem->type == BLOCK_END && (scriptElem_t*)checkElem->data == elem) {
@@ -87,31 +93,31 @@ uint8_t getCategory(void *data) {
 #ifndef NDEBUG
 
 char *elemNames[] = {
-	"END_SCRIPT",				/* No data */
-	"BLOCK_END",				/* Pointer to start of block */
-	"ON_GREEN_FLAG",			/* No data */
-	"ON_KEY",					/* Key type */
-	"ON_CLICK",					/* No data */
-	"ON_CONDITION_START",		/* No data - followed by a predicate and then BLOCK_END */
-	"ON_MESSAGE",				/* Pointer to message */
-	"ON_CLONE",					/* No data */
-	"CUSTOM_BLOCK_START",		/* Lower byte is a color, upper bytes are 0 for custom blocks, 1 for builtins */
-	"BLOCK_START",				/* Pointer to block definition, or 0x800000 + primitive block ID */
-	"REPORTER_START",			/* Reporter type / definition */
-	"PREDICATE_START",			/* Predicate type / definition */
-	"BLOCK_RING",				/* Pointer to script inside ring */
-	"C_BLOCK",					/* Pointer to script inside C block */
-	"REPORTER_RING",			/* Pointer to script inside ring */
-	"HIDDEN_REPORTER_RING",		/* Pointer to script inside ring */
-	"PREDICATE_RING",			/* Pointer to script inside ring */
-	"HIDDEN_PREDICATE_RING",	/* Pointer to script inside ring */
-	"ARGLIST_START",			/* No data */
-	"BOOLEAN_LITERAL",			/* 0 = false, 1 = true, 2 = "empty" false */
-	"STRING_LITERAL",			/* Pointer to string */
-	"FLOAT_LITERAL",			/* Pointer to float */
-	"VARIABLE",					/* Pointer to variable definition */
-	"UPVAR",					/* Pointer to variable definition */
-	"TITLE_TEXT",				/* String - ignored when evaluating */
+	"END_SCRIPT",					/* No data */
+	"BLOCK_END",					/* Pointer to start of block */
+	"ON_GREEN_FLAG",				/* No data */
+	"ON_KEY",						/* Key type */
+	"ON_CLICK",						/* No data */
+	"ON_CONDITION_START",			/* No data - followed by a predicate and then BLOCK_END */
+	"ON_MESSAGE",					/* Pointer to message */
+	"ON_CLONE",						/* No data */
+	"CUSTOM_BLOCK_START",			/* Lower byte is a color, upper bytes are 0 for custom blocks, 1 for builtins */
+	"BLOCK_START",					/* Pointer to block definition, or 0x800000 + primitive block ID */
+	"REPORTER_START",				/* Reporter type / definition */
+	"PREDICATE_START",				/* Predicate type / definition */
+	"BLOCK_RING_START",				/* No data */
+	"C_BLOCK_START",				/* No data */
+	"REPORTER_RING_START",			/* No data */
+	"HIDDEN_REPORTER_RING_START",	/* No data */
+	"PREDICATE_RING_START",			/* No data */
+	"HIDDEN_PREDICATE_RING_START",	/* No data */
+	"ARGLIST_START",				/* No data */
+	"BOOLEAN_LITERAL",				/* 0 = false, 1 = true, 2 = "empty" false */
+	"STRING_LITERAL",				/* Pointer to string */
+	"FLOAT_LITERAL",				/* Pointer to float */
+	"VARIABLE",						/* Pointer to variable definition */
+	"UPVAR",						/* Pointer to variable definition */
+	"TITLE_TEXT",					/* String - ignored when evaluating */
 };
 
 /* Note to self: this is actual code, and not the result of a cat walking across the number pad */
