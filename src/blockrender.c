@@ -32,6 +32,8 @@
 #define COLOR_FALSE 0xC9 // Color used to represent false in Boolean literals
 #define COLOR_BOOL_SELECT 0xDE // Color of the circle in the Boolean literal's toggle
 
+#define COLOR_LIGHT_ALT 0xD6
+
 uint24_t getMaxHeight(scriptElem_t *elem, scriptElem_t **next, uint24_t *cache);
 uint24_t getTotalHeight(scriptElem_t *elem, scriptElem_t **next, uint24_t *cache);
 uint24_t getMaxWidth(scriptElem_t *elem, scriptElem_t **next, uint24_t *cache);
@@ -41,6 +43,19 @@ uint24_t getTotalHeight(scriptElem_t *elem, scriptElem_t **next, uint24_t *cache
 uint8_t getColor(blockColor_t col) {
 	/* colors is a 16x4 sprite */
 	return colors->data[col];
+}
+
+/* Get a lighter color with the same hue */
+uint8_t getLightColor(blockColor_t col) {
+	/* If already the alt color, get the generic light color for alt colors */
+	if(col & COLOR_ALT) return COLOR_LIGHT_ALT;
+	/* Otherwise, get the value of the alt color */
+	return getColor(col | COLOR_ALT);
+}
+
+/* Get a darker color with the same hue */
+uint8_t getDarkColor(blockColor_t col) {
+	return getColor(col | COLOR_DARK);
 }
 
 /* Finds the tallest elem in a block */
@@ -518,20 +533,37 @@ bool drawElem(scriptElem_t *elem, int24_t x, int24_t y, blockColor_t parentColor
 			gfx_GetSprite(tmpSprite, x + NOTCH_OFFSET, y);
 
 			/* Draw a rounded rectangle */
+			gfx_SetColor(getLightColor(col));
 			gfx_HorizLine(x + 1, y, width - 2);
-			gfx_HorizLine(x + 1, y + height - 1, width - 2);
-			gfx_FillRectangle(x, y + 1, width, height - 2);
+			gfx_VertLine(x, y + 1, height - 2);
+
+			gfx_SetColor(getDarkColor(col));
+			gfx_HorizLine(x + 1, y + height - 1, NOTCH_OFFSET - 1);
+			gfx_HorizLine(x + NOTCH_OFFSET + NOTCH_SIZE, y + height - 1, width - 1 - (NOTCH_OFFSET + NOTCH_SIZE));
+			gfx_VertLine(x + width - 1, y + 1, height - 2);
+
+			gfx_SetColor(getColor(col));
+			gfx_FillRectangle(x + 1, y + 1, width - 2, height - 2);
+			gfx_HorizLine(x + NOTCH_OFFSET, y + height - 1, NOTCH_SIZE);
 
 			/* Replace the background, leaving a rectangular notch */
 			gfx_Sprite(tmpSprite, x + NOTCH_OFFSET, y);
 
 			for(i = 0; i < NOTCH_DEPTH; i++) {
+				gfx_SetColor(getColor(col));
 				/* Draw the corners of the inverted notch */
-				gfx_HorizLine(x + NOTCH_OFFSET, y + i, i);
+				gfx_HorizLine(x + NOTCH_OFFSET + 1, y + i, i - 1);
 				gfx_HorizLine(x + NOTCH_OFFSET + NOTCH_SIZE - i, y + i, i);
 
 				/* Draw the regular notch */
-				gfx_HorizLine(x + NOTCH_OFFSET + i, y + height + i, NOTCH_SIZE - 2 * i);
+				if(i == NOTCH_DEPTH - 1) gfx_SetColor(getDarkColor(col));
+				gfx_HorizLine(x + NOTCH_OFFSET + i, y + height + i, NOTCH_SIZE - 2 * i - 1);
+			
+				gfx_SetColor(getLightColor(col));
+				gfx_SetPixel(x + NOTCH_OFFSET + i - 1, y + i);
+
+				gfx_SetColor(getDarkColor(col));
+				gfx_SetPixel(x + NOTCH_OFFSET + NOTCH_SIZE - 1 - i, y + height + i);
 			}
 
 			/* Draw the block's subelements */
